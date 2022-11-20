@@ -1,0 +1,6 @@
+The program decodes the code 39 barcodes.
+
+1- We give file names as input to program. We can change the file name manually at 25th line of the code.
+2- 'tests' file contains 3 different bmp images to test.
+3- We can set the numbers 1,2,3 as file name.(the files taken from the link, which was given in moodle platform)
+4- Output will be a string representation of the barcode.
