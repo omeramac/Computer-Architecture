@@ -1,0 +1,230 @@
+     1                                  ;ECOAR PROJECT 2
+     2                                  ;OMER AMAC
+     3                                  ;323796
+     4                                  
+     5                                  section .data
+     6                                  
+     7 00000000 303132333435363738-     char_table: db	 '0','1','2', '3', '4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','-','.', ' ','$','/','+','%','*'
+     8 00000009 394142434445464748-
+     9 00000012 494A4B4C4D4E4F5051-
+    10 0000001B 52535455565758595A-
+    11 00000024 2D2E20242F2B252A   
+    12 0000002C DB19A10668D3960CA8-     char_code: 	dd 111221211,  211211112, 112211112,  212211111, 111221112, 211221111, 112221111, 111211212, 211211211, 112211211, 211112112, 112112112, 212112111, 111122112,211122111,  112122111, 112122111,  211112211,
+    13 00000035 34B006A715A60C7819-
+    14 0000003E A10677FA960CB75BB0-
+    15 00000047 06CCF2A006CBD3960C-
+    16 00000050 0B35B006B050950CF0-
+    17 00000059 B1AE06EF92A40CC096-
+    18 00000062 9F06BF77950CFFD8AE-
+    19 0000006B 06FFD8AE061351950C-
+    20 00000074 53B2AE0623979F06D2-
+    21 0000007D 4C950C12AEAE06118F-
+    22 00000086 A40CE2929F06E17395-
+    23 0000008F 0C21D5AE06366C9F06-
+    24 00000098 354D950C75AEAE0645-
+    25 000000A1 939F0648E32D0D8844-
+    26 000000AA 470787253D0D582938-
+    27 000000B3 07570A2E0D976B4707-
+    28 000000BC AC023807ABE32D0DEB-
+    29 000000C5 444707CF8C3907F188-
+    30 000000CE 39073906380759F6A0-
+    31 000000D7 06BB293807         
+    32                                  
+    33                                  
+    34                                  
+    35                                  
+    36                                  
+    37                                  
+    38                                  
+    39                                  
+    40                                  
+    41                                  
+    42                                  
+    43                                  	%define output     [ebp+16]		;output
+    44                                  	%define line_point [ebp+12]		;line pointer(25)
+    45                                  	%define image      [ebp+8]		;bmp img itself
+    46                                  	%define width      1800 		;600 width x 3 RGB
+    47                                  	%define bar_width  [ebp-4]		;local variable to store the witdth of first stripe
+    48                                  	
+    49                                  section .text
+    50                                  	global func
+    51                                  	extern printf
+    52                                  func:
+    53 00000000 55                         	push ebp
+    54 00000001 89E5                       	mov  ebp, esp
+    55 00000003 51                            	push ecx
+    56 00000004 53                         	push ebx
+    57 00000005 56                         	push esi
+    58 00000006 57                         	push edi
+    59 00000007 31D2                    	xor  edx,edx
+    60 00000009 31C9                    	xor  ecx,ecx
+    61 0000000B 8B4508                  	mov  eax, image 		;move image to eax register
+    62                                  ;##################################
+    63 0000000E 8B10                    	mov edx,[eax]
+    64 00000010 6681FA424D              	cmp dx,0x4d42			;check bmp marker error
+    65 00000015 0F855F010000            	jne bmp_error
+    66                                  	
+    67 0000001B 8B5012                  	mov edx,[eax+18]
+    68 0000001E 6681FA5802              	cmp dx,0x00000258		;check the width of image
+    69 00000023 0F855B010000            	jne size_error
+    70                                  
+    71 00000029 8B5016                  	mov edx,[eax+22]
+    72 0000002C 6681FA3200              	cmp dx,0x00000032		;check the height of the image
+    73 00000031 0F854D010000            	jne size_error
+    74                                  
+    75 00000037 31D2                    	xor edx,edx
+    76                                  ;#####################################
+    77 00000039 B908070000              	mov  ecx, width			;put the value of width into ecx
+    78 0000003E 0FAF4D0C                	imul ecx, line_point 	;multiply 25*1800, 
+    79 00000042 01C8                    	add  eax, ecx 			;add pointer position to current address of the image, now pointer at the first pixel on the middle of image
+    80                                  
+    81                                  
+    82 00000044 31C9                    	xor ecx, ecx	;reset the register 
+    83 00000046 31FF                    	xor edi, edi	;reset the register, use as counter for the pointer
+    84 00000048 31DB                    	xor ebx, ebx	;reset the register, use for counting the width of stripe
+    85                                  	
+    86 0000004A 8B7510                  	mov esi, output ;assign output stack to esi register
+    87                                  	
+    88                                  
+    89                                  look_for_black:				;start to check for the first black stripe, it is '*'
+    90 0000004D 89C1                    	mov ecx, eax
+    91 0000004F 803900                  	cmp BYTE[ecx], 0 		;check if the pixel black
+    92 00000052 7417                    	je  black_found  		;if pixel black jump
+    93 00000054 47                      	inc edi 				;counter for the pointer
+    94 00000055 81FF58020000            	cmp edi,600 			;control to check if pointer is in the same line
+    95 0000005B 0F840F010000            	je  exit				;if pointer at last pixel(600) exit
+    96 00000061 0503000000              	add eax,3 				;if not, add 3(pixels) and jump to look_for_black
+    97 00000066 E9E2FFFFFF              	jmp look_for_black
+    98                                  	
+    99                                  black_found: 				;checking the wdith of the bar
+   100 0000006B 31C9                    	xor ecx, ecx 			;restore ecx again to use for space
+   101                                  	
+   102 0000006D 89C1                    	mov ecx, eax
+   103 0000006F 803900                  	cmp BYTE[ecx], 0 		;checking if pixel is black
+   104 00000072 7518                    	jne first_black_complete		;jump if it is not black
+   105 00000074 0503000000              	add eax, 3		 		;shift the pointer b 3(3 is because of RGB)
+   106 00000079 43                      	inc ebx			 		; increment length of stipe
+   107 0000007A 47                      	inc edi			 		; check the position of pointer
+   108 0000007B 81FF58020000            	cmp edi, 600	 	
+   109 00000081 0F84E9000000            	je  exit					;if pointer at 600th pixel then exit
+   110 00000087 E9DFFFFFFF              	jmp black_found
+   111                                  	
+   112                                  ;######################################################################
+   113                                  	
+   114                                  first_black_complete: 		
+   115 0000008C 29DF                    	sub  edi,ebx			;set counter back to begining of the first black pixel
+   116 0000008E 69CB03000000            	imul ecx,ebx,3			
+   117 00000094 29C8                    	sub  eax,ecx			;set eax to begining of the first black pixel
+   118 00000096 31C9                    	xor  ecx,ecx
+   119                                  	
+   120 00000098 895DFC                  	mov bar_width, ebx		;set ebx as the width of the bar
+   121                                  
+   122                                  ;#######################################################################
+   123                                  	
+   124                                  decode:
+   125 0000009B 31D2                    	xor edx,edx			;reset the register, store char_ccode value inside
+   126 0000009D 31DB                    	xor ebx,ebx			;reset the register, length of the char_code (should be 9)
+   127                                  check_color:				;check the color of the pixel white or black
+   128 0000009F 31C9                    	xor ecx, ecx			;reset the register, will check the width of the stripe
+   129 000000A1 803800                  	cmp BYTE[eax], 0		;Check if we have black or white color, than jump to proper label
+   130 000000A4 7402                    	je  black			;jump to black pixel width count
+   131 000000A6 751D                    	jne space			;jump to space pixel width count
+   132                                  	
+   133                                  black:
+   134 000000A8 41                      	inc ecx				;increase the width by 1
+   135 000000A9 0503000000              	add eax, 3			;shift pointer for next pixel
+   136 000000AE 47                      	inc edi				;increase the pointer control
+   137 000000AF 81FF58020000            	cmp edi,600			;exit if pointer control value is 600
+   138 000000B5 0F84B5000000            	je  exit
+   139 000000BB 803800                  	cmp BYTE[eax], 0		;check if next pixel is black or space
+   140 000000BE 74E8                    	je  black			;loop if it is black
+   141 000000C0 E91D000000              	jmp color_end			;jump if it is not black anymore
+   142                                  
+   143                                  	
+   144                                  space:
+   145 000000C5 41                      	inc ecx				;increase the width by 1
+   146 000000C6 0503000000              	add eax,3			;shift pointer for next pixel
+   147 000000CB 47                      	inc edi				;increase the pointer control
+   148 000000CC 81FF58020000            	cmp edi,600			;exit if pointer control value is 600
+   149 000000D2 0F8498000000            	je  exit
+   150 000000D8 803800                  	cmp BYTE[eax], 0		;check if next pixel is black or space
+   151 000000DB 75E8                    	jne space			;loop if it is space
+   152 000000DD E900000000              	jmp color_end			;jump if it is not space anymore
+   153                                  	
+   154                                  color_end:	
+   155 000000E2 81FB09000000            	cmp ebx,9			;check if we have 9 digits for the character codes
+   156 000000E8 743D                    	je  find_char			;if we have already 9 then jump to find the character
+   157 000000EA 43                      	inc ebx				;if not thenincrease the length of char_code array
+   158 000000EB 3B4DFC                  	cmp ecx, bar_width  		;check if it is narrow or thick 
+   159 000000EE 7F05                    	jg  wide			;jump to wide if greater than narrow
+   160 000000F0 E919000000              	jmp narrow			;else jump to narrow
+   161                                  
+   162                                  wide:
+   163 000000F5 69D20A000000            	imul edx, 10			;multiply the char_code value by 10 to create place for next digit
+   164 000000FB 81C202000000            	add edx, 2			;add 1 if it is narrow
+   165 00000101 81FB09000000            	cmp ebx, 9			;check if we have 9 digits for the character codes
+   166 00000107 741E                    	je  find_char			;if we have already 9 then jump to find the character
+   167 00000109 E991FFFFFF              	jmp check_color			;if not go back to start for the next digit
+   168                                  
+   169                                  narrow:
+   170 0000010E 69D20A000000            	imul edx, 10			;multiply the char_code value by 10 to create place for next digit
+   171 00000114 81C201000000            	add  edx,1			;add 1 if it is narrow
+   172 0000011A 81FB09000000            	cmp  ebx, 9			;check if we have 9 digits for the character codes
+   173 00000120 7405                    	je   find_char			;if we have already 9 then jump to find the character
+   174 00000122 E978FFFFFF              	jmp  check_color		;if not go back to start for the next digit
+   175                                  	
+   176                                  
+   177                                  ;##################################################################
+   178                                  
+   179                                  find_char:
+   180                                  ;EBX -> ARRAY  (with patterns)
+   181                                  ;ECX -> POSITION IN ARRAY
+   182 00000127 31DB                    	xor ebx, ebx		;reset the register, char_code address
+   183 00000129 31C9                    	xor ecx, ecx		;reset the register, char_code pointer
+   184                                  
+   185                                  find_position: 
+   186                                  ;Iteration through array to check if encoded symbol equal one of the array.
+   187 0000012B 8B1C8D[2C000000]        	mov ebx, [char_code+4*ecx]		;load the first char_code into ebx
+   188 00000132 39DA                    	cmp edx, ebx				;compare our array with the char_codes
+   189 00000134 740E                    	je  encode 				;if it is in the char_code jump to encode
+   190 00000136 41                      	inc ecx					;if can not find loop over all codes in char_code
+   191 00000137 81F92C000000            	cmp ecx, 44				;check if we are at the end of the char_code
+   192 0000013D 7431                    	je  exit				;if yes, exit
+   193 0000013F E9E7FFFFFF              	jmp find_position 			;if not continue to search for it
+   194                                  	
+   195                                  encode:
+   196 00000144 31D2                    	xor edx, edx				;restore the register 
+   197 00000146 8A99[00000000]          	mov bl, [char_table+ecx]		;move the content of the char_table into bl
+   198 0000014C 881E                    	mov BYTE[esi],bl			;mov bl into output register esi
+   199 0000014E 46                      	inc esi					;increase esi by 1 for nect character
+   200                                  	
+   201                                  next_bar:						
+   202 0000014F 0503000000              	add eax, 3				;shift image pointer by 3(RGB)
+   203 00000154 47                      	inc edi					;increase pointer by 1
+   204 00000155 81FF58020000            	cmp edi, 600				;exit if we are at the end of the line
+   205 0000015B 7413                    	je  exit
+   206 0000015D 803800                  	cmp BYTE[eax], 0			;check if the next pixel is black
+   207 00000160 0F8435FFFFFF            	je decode				;if black go to decode 
+   208 00000166 E9E4FFFFFF              	jmp next_bar				;if not loop till find the black
+   209 0000016B E900000000              	jmp exit
+   210                                  exit:
+   211 00000170 B800000000              	mov eax,0
+   212 00000175 E914000000              	jmp exit_last				;exit with success
+   213                                  	
+   214                                  bmp_error:
+   215 0000017A B801000000              	mov eax,1				
+   216 0000017F E90A000000              	jmp exit_last				;exit with bmp marker error
+   217                                  size_error:
+   218 00000184 B802000000              	mov eax,2	
+   219 00000189 E900000000              	jmp exit_last				;exit with image size error
+   220                                  
+   221                                  exit_last:					;exit the program
+   222                                  	
+   223 0000018E 5F                      	pop edi
+   224 0000018F 5E                          	pop esi
+   225 00000190 5B                          	pop ebx
+   226 00000191 59                          	pop ecx
+   227 00000192 89EC                        	mov esp,ebp
+   228 00000194 5D                         	pop ebp
+   229 00000195 C3                         	ret
+   230                                     	
